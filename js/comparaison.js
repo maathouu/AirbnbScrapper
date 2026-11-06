@@ -76,7 +76,7 @@ async function ouvrirComparaison(ids) {
   const d = $('#comparaison');
   cmp.clear(); ids.forEach(i => cmp.add(i));
   d.innerHTML = '<p class="sub">Chargement…</p>'; vue('comparaison'); scrollTo(0, 0);
-  try { await Promise.all(ids.filter(i => !ab().logement[i]).map(i => charge(`data/logements/${i}.js`))); }
+  try { await Promise.all(ids.filter(i => !ab().logement[i]).map(i => charge(`https://maathouu.github.io/TempData/logements/${i}.js`))); }
   catch (e) { d.innerHTML = '<button class="back" id="retour">Retour</button>' + manque(e); return; }
   const L = ids.map(i => ab().logement[i]), n = L.length;
   const sec = (t, cls = '') => `<tr class="sec ${cls}"><th colspan="${n + 1}"><span>${esc(t)}</span></th></tr>`;

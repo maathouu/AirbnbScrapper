@@ -80,7 +80,7 @@ const noteVille = s => {
 async function ouvrirGalerie() {
   const g = $('#galerie');
   g.innerHTML = '<p class="sub">Chargement…</p>'; liste = 'galerie'; vue('galerie'); scrollTo(0, 0);
-  try { await Promise.all([...sel].filter(s => !ab().ville[s]).map(s => charge(`data/villes/${s}.js`))); }
+  try { await Promise.all([...sel].filter(s => !ab().ville[s]).map(s => charge(`https://maathouu.github.io/TempData/villes/${s}.js`))); }
   catch (e) { g.innerHTML = manque(e); return; }
   g.innerHTML = [...sel].map(s => {
     const v = villes.find(x => x.slug === s);

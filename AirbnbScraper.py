@@ -16,11 +16,21 @@ Ou depuis un autre fichier / la console de l'IDE :
     airbnb_scraper.run(liens=["https://www.airbnb.fr/rooms/123?check_in=...&check_out=...&adults=2"],
                        ville="Annecy, France")
 
+DEUX MODES POUR LES PHOTOS (réglage MODE_PHOTOS, ou paramètre mode_photos de run()) :
+    "local" (défaut)  les photos sont téléchargées dans data/photos/<id>/ ; le site les lit sur le disque
+    "url"             rien n'est téléchargé, on ne garde que les adresses Airbnb (très léger, il faut internet)
+Le mode est écrit dans la fiche de CHAQUE logement (champ photo_mode) : une même ville peut donc
+mélanger des logements « local » et « url ». On peut choisir le mode lien par lien :
+    airbnb_scraper.run(liens=["https://...", ("https://...", "url")], mode_photos="local")
+    ou, dans urls.txt :  https://www.airbnb.fr/rooms/123?...  url
+On peut aussi changer le mode de logements déjà enregistrés, sans re-scraper :
+    airbnb_scraper.convertir_photos(["123", "456"], "url")      # ids ; None = tous les logements
+
 SORTIE (à côté du script, lue par index.html) :
     data/villes.js            index des villes (léger)
     data/villes/<ville>.js    résumés des logements d'une ville
     data/logements/<id>.js    fiche complète d'un logement (description, équipements, photos...)
-    photos/<id>/001.jpg ...   photos téléchargées
+    data/photos/<id>/001.jpg  photos téléchargées (mode "local" uniquement)
 
 IMPORTANT : le prix total n'apparaît que si l'URL contient check_in, check_out et adults
 (ex. ?check_in=2026-12-20&check_out=2026-12-27&adults=2).
@@ -30,6 +40,7 @@ import json
 import math
 import random
 import re
+import shutil
 import sys
 import time
 import unicodedata
@@ -49,10 +60,13 @@ if "PLAYWRIGHT_BROWSERS_PATH" not in os.environ and _portable_browsers.is_dir():
 FICHIER_LIENS = "urls.txt"        # fichier avec un lien Airbnb par ligne
 VILLE = "Annecy, France"          # sert à trouver le centre-ville (None pour désactiver)
 CENTRE = None                     # ou coordonnées précises, ex. (45.8992, 6.1294) ; prioritaire sur VILLE
-TELECHARGER_PHOTOS = True
-MAX_PHOTOS = 0                    # 0 = toutes les photos
+MODE_PHOTOS = "local"             # mode par défaut : "local" (photos téléchargées) ou "url" (adresses seulement, léger)
+MAX_PHOTOS = 0                    # 0 = toutes ; mode local : au-delà de la limite, le site utilise l'URL Airbnb
 AFFICHER_NAVIGATEUR = False       # True si Airbnb bloque le mode invisible
 # =========================================================================================
+
+MODE_LOCAL, MODE_URL = "local", "url"
+MODES = (MODE_LOCAL, MODE_URL)
 
 # Tous les fichiers (photos, data, urls.txt) sont lus/écrits à côté de ce script
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -433,7 +447,7 @@ VILLES_DIR = DATA_DIR / "villes"
 ENTETE_JS = "window.AB = window.AB || {villes: [], ville: {}, logement: {}};\n"  # .js (pas .json) : marche en double-clic
 CHAMPS = ["listing_id", "url", "title", "ville", "city_guess", "description", "check_in", "check_out", "adults",
           "price_total", "price_per_night", "currency", "nights", "price_raw", "guests", "bedrooms", "beds",
-          "bathrooms", "sleeping", "amenities", "amenity_groups", "ratings", "rules", "rating", "reviews", "lat", "lng", "dist_center_km", "scraped_at"]
+          "bathrooms", "sleeping", "amenities", "amenity_groups", "ratings", "rules", "rating", "reviews", "lat", "lng", "dist_center_km", "scraped_at", "photo_mode"]
 CHAMPS_CARTE = ["listing_id", "title", "price_total", "price_per_night", "currency", "nights", "adults",
                 "guests", "bedrooms", "beds", "bathrooms", "rating", "reviews", "dist_center_km"]
 
@@ -455,21 +469,43 @@ def lire_js(path):
     return json.loads(corps.split("=", 1)[1].strip().rstrip(";"))
 
 
-def photos_site(rec):
-    """[{l: chemin local relatif (ou None), r: URL Airbnb}] pour chaque photo."""
+def dossier_photos(listing_id):
+    return PHOTO_DIR / (listing_id or "unknown")
+
+
+def nom_photo(i, url):
+    return f"{i + 1:03d}{Path(url).suffix.lower() or '.jpg'}"
+
+
+def verifier_mode(mode):
+    m = str(mode or "").strip().lower()
+    if m not in MODES:
+        raise ValueError(f"mode de photos inconnu : {mode!r} (attendu : {' ou '.join(MODES)})")
+    return m
+
+
+def photos_site(listing_id, urls, mode):
+    """[{l: chemin local relatif (ou None), r: URL Airbnb}] pour chaque photo.
+
+    Mode "url"   : l vaut toujours None, le site charge les images depuis Airbnb.
+    Mode "local" : l pointe vers la copie locale si elle existe (sinon None : le site se rabat sur l'URL)."""
     out = []
-    for i, p in enumerate(rec["photos"]):
-        rel = Path(PHOTO_DIR.name) / (rec["listing_id"] or "unknown") / f"{i + 1:03d}{Path(p).suffix.lower() or '.jpg'}"
-        out.append({"l": rel.as_posix() if (SCRIPT_DIR / rel).is_file() else None, "r": p})
+    for i, u in enumerate(urls):
+        local = None
+        if mode == MODE_LOCAL:
+            f = dossier_photos(listing_id) / nom_photo(i, u)
+            if f.is_file():
+                local = f.relative_to(SCRIPT_DIR).as_posix()
+        out.append({"l": local, "r": u})
     return out
 
 
-def download_photos(rec, limit):
+def download_photos(listing_id, urls, limit=0):
     import requests
-    folder = PHOTO_DIR / (rec["listing_id"] or "unknown")
+    folder = dossier_photos(listing_id)
     folder.mkdir(parents=True, exist_ok=True)
-    for i, p in enumerate(rec["photos"][:limit] if limit else rec["photos"]):
-        dest = folder / f"{i + 1:03d}{Path(p).suffix.lower() or '.jpg'}"
+    for i, p in enumerate(urls[:limit] if limit else urls):
+        dest = folder / nom_photo(i, p)
         try:
             if not dest.exists():
                 r = requests.get(p + "?im_w=1200", timeout=30)
@@ -479,12 +515,20 @@ def download_photos(rec, limit):
             print(f"   ! photo {i + 1} : {e}")
 
 
+def supprimer_photos_locales(listing_id):
+    """Mode url : efface un éventuel dossier de photos laissé par un scraping précédent en mode local."""
+    d = dossier_photos(listing_id)
+    if listing_id and d.is_dir():
+        shutil.rmtree(d)
+        print("   anciennes photos locales supprimées")
+
+
 def enregistrer_logement(rec):
     """Écrit data/logements/<id>.js (fiche complète)."""
     if not rec["listing_id"]:
         raise ValueError("identifiant du logement introuvable dans l'URL")
     fiche = {c: rec.get(c) for c in CHAMPS}
-    fiche["photos"] = photos_site(rec)
+    fiche["photos"] = photos_site(rec["listing_id"], rec["photos"], rec["photo_mode"])
     ecrire_js(LOGEMENTS_DIR / f"{rec['listing_id']}.js", "logement", rec["listing_id"], fiche)
 
 
@@ -525,10 +569,52 @@ def reconstruire_site():
     print(f"Site : {sum(v['nb'] for v in index)} logements, {len(index)} ville(s) -> {DATA_DIR}  (ouvre index.html)")
 
 
+def convertir_photos(ids=None, mode=MODE_LOCAL, max_photos=MAX_PHOTOS):
+    """Change le mode des photos de logements DÉJÀ enregistrés, sans relancer le scraping.
+
+    ids=None -> tous les logements.
+    "local" : télécharge les photos à partir des URL gardées dans la fiche (celles déjà présentes sont conservées).
+    "url"   : supprime les photos locales et ne garde que les URL."""
+    mode = verifier_mode(mode)
+    fichiers = sorted(LOGEMENTS_DIR.glob("*.js"))
+    if ids is not None:
+        voulus = {str(i) for i in ids}
+        fichiers = [f for f in fichiers if f.stem in voulus]
+    for f in fichiers:
+        try:
+            fiche = lire_js(f)
+        except Exception as e:
+            print(f"   ! {f.name} illisible : {e}")
+            continue
+        urls = [p["r"] for p in fiche.get("photos") or []]
+        if mode == MODE_LOCAL:
+            download_photos(f.stem, urls, max_photos)
+        else:
+            supprimer_photos_locales(f.stem)
+        fiche["photo_mode"] = mode
+        fiche["photos"] = photos_site(f.stem, urls, mode)
+        ecrire_js(f, "logement", f.stem, fiche)
+        print(f"{f.stem} -> mode {mode} ({len(urls)} photos)")
+    reconstruire_site()
+
+
 # --------------------------------------------------------------------------- main
+def lire_lien(item, mode_defaut):
+    """'https://...' | 'https://... url' | ('https://...', 'url')  ->  (lien, mode)."""
+    if isinstance(item, (tuple, list)):
+        lien, mode = item[0], (item[1] if len(item) > 1 else None)
+    else:
+        lien, *reste = str(item).split()
+        mode = reste[0] if reste else None
+    return lien, verifier_mode(mode or mode_defaut)
+
+
 def run(liens=None, fichier_liens=FICHIER_LIENS, ville=VILLE, centre=CENTRE,
-        photos=TELECHARGER_PHOTOS, max_photos=MAX_PHOTOS, navigateur_visible=AFFICHER_NAVIGATEUR):
-    """Lance le scraping. `liens` = liste d'URLs ; sinon on lit `fichier_liens`."""
+        mode_photos=MODE_PHOTOS, max_photos=MAX_PHOTOS, navigateur_visible=AFFICHER_NAVIGATEUR):
+    """Lance le scraping. `liens` = liste d'URLs ; sinon on lit `fichier_liens`.
+
+    `mode_photos` = mode par défaut ("local" ou "url"). Chaque lien peut avoir le sien :
+    "https://... url" ou ("https://...", "url"). Le mode est écrit dans la fiche de chaque logement."""
     def chemin(p):
         p = Path(p)
         return p if p.is_absolute() else SCRIPT_DIR / p
@@ -544,6 +630,12 @@ def run(liens=None, fichier_liens=FICHIER_LIENS, ville=VILLE, centre=CENTRE,
         print("Aucun lien à traiter.")
         return
 
+    try:
+        taches = [lire_lien(u, mode_photos) for u in urls]
+    except ValueError as e:
+        print(f"ERREUR : {e}")
+        return
+
     if ville and not centre:
         try:
             tester_ville(ville)
@@ -556,18 +648,21 @@ def run(liens=None, fichier_liens=FICHIER_LIENS, ville=VILLE, centre=CENTRE,
         browser = pw.chromium.launch(headless=not navigateur_visible)
         ctx = browser.new_context(locale="fr-FR", viewport={"width": 1400, "height": 1000})
         page = ctx.new_page()
-        for n, url in enumerate(urls, 1):
-            print(f"[{n}/{len(urls)}] {url}")
+        for n, (url, mode) in enumerate(taches, 1):
+            print(f"[{n}/{len(taches)}] ({mode}) {url}")
             try:
                 raw = scrape_page(page, url)
                 rec = build_record(url, raw)
                 rec["ville"] = ville
+                rec["photo_mode"] = mode
                 add_distance(rec, centre, ville)
-                if photos:
-                    download_photos(rec, max_photos)
+                if mode == MODE_LOCAL:
+                    download_photos(rec["listing_id"], rec["photos"], max_photos)
+                else:
+                    supprimer_photos_locales(rec["listing_id"])
                 enregistrer_logement(rec)
                 print(f"   {rec['title']!r} | total={rec['price_total']} nuit={rec['price_per_night']} {rec['currency']}"
-                      f" | {rec['bedrooms']} ch. | {len(rec['photos'])} photos | {rec['dist_center_km']} km du centre")
+                      f" | {rec['bedrooms']} ch. | {len(rec['photos'])} photos ({mode}) | {rec['dist_center_km']} km du centre")
                 if rec["lat"] is None:
                     print("   ! coordonnées introuvables")
                 if rec["price_total"] is None:

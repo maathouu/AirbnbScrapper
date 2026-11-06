@@ -3,7 +3,7 @@
 async function ouvrirDetail(id) {
   const d = $('#detail');
   d.innerHTML = '<p class="sub">Chargement…</p>'; vue('detail'); scrollTo(0, 0);
-  try { if (!ab().logement[id]) await charge(`data/logements/${id}.js`); }
+  try { if (!ab().logement[id]) await charge(`https://maathouu.github.io/TempData/logements/${id}.js`); }
   catch (e) { d.innerHTML = '<button class="back" id="retour">Retour</button>' + manque(e); return; }
   const a = ab().logement[id], pp = parPers(a);
   lbPhotos = a.photos;
