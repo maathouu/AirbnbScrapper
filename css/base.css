@@ -1,0 +1,97 @@
+/* Base : variables, thème clair/sombre, mise en page, boutons, barre du bas */
+
+:root {
+  --bg:#eef3f4;
+  --ink:#12262f;
+  --mute:#5b6f78;
+  --card:#fff;
+  --line:#d5e0e3;
+  --sun:#f4b400;
+  --sea:#0b6e7f;
+}
+@media(prefers-color-scheme:dark) {
+  :root {
+    --bg:#0f1c22;
+    --ink:#e8f1f3;
+    --mute:#93a9b2;
+    --card:#162830;
+    --line:#27404a;
+    --sea:#4fc3d6;
+  }
+}
+* {
+  box-sizing:border-box;
+}
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font:16px/1.5 "Avenir Next","Segoe UI Variable","Segoe UI",system-ui,sans-serif;
+}
+main {
+  max-width:1200px;
+  margin:0 auto;
+  padding:40px 20px 120px;
+}
+h1 {
+  font-size:clamp(2rem,5vw,3.2rem);
+  line-height:1.05;
+  margin:0 0 8px;
+  font-weight:800;
+  letter-spacing:-.02em;
+}
+.sub {
+  color:var(--mute);
+  margin:0 0 32px;
+  max-width:52ch;
+}
+button {
+  font:inherit;
+  color:inherit;
+  cursor:pointer;
+}
+:focus-visible {
+  outline:3px solid var(--sea);
+  outline-offset:3px;
+}
+[hidden] {
+  display:none!important;
+}
+.bar {
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  padding:14px 20px;
+  background:var(--card);
+  border-top:1px solid var(--line);
+  display:flex;
+  gap:16px;
+  justify-content:center;
+  align-items:center;
+}
+.go {
+  background:var(--ink);
+  color:var(--bg);
+  border:0;
+  border-radius:10px;
+  padding:12px 24px;
+  font-weight:700;
+}
+.go:disabled {
+  opacity:.35;
+  cursor:not-allowed;
+}
+.back {
+  background:none;
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:8px 16px;
+  margin-bottom:24px;
+}
+.vide {
+  padding:40px;
+  border:2px dashed var(--line);
+  border-radius:14px;
+  color:var(--mute);
+}

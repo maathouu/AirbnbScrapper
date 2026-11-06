@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comparateur Airbnb</title>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/villes.css">
+<link rel="stylesheet" href="css/galerie.css">
+<link rel="stylesheet" href="css/detail.css">
+<link rel="stylesheet" href="css/comparaison.css">
+</head>
+<body>
+<main>
+  <section id="vue-villes">
+    <h1>Où veux-tu comparer ?</h1>
+    <p class="sub">Choisis une ou plusieurs villes pour voir les logements enregistrés.</p>
+    <div class="villes" id="villes"></div>
+  </section>
+  <section id="vue-galerie" hidden>
+    <button class="back" id="retour-villes">Changer de villes</button>
+    <div id="galerie"></div>
+  </section>
+  <section id="vue-detail" hidden><div id="detail"></div></section>
+  <section id="vue-comparaison" hidden><div id="comparaison"></div></section>
+</main>
+<div id="lb" hidden><img id="lbimg" alt=""><button id="lbx" aria-label="Fermer">✕</button><button id="lbp" aria-label="Précédente">‹</button><button id="lbs" aria-label="Suivante">›</button><span id="lbn"></span></div>
+<div class="bar" id="bar">
+  <span id="resume"></span>
+  <button class="go" id="voir" disabled>Voir les logements</button>
+</div>
+
+<div class="bar bar2" id="bar2" hidden>
+  <span id="resume2"></span>
+  <button class="go ghost" id="vider">Vider</button>
+  <button class="go" id="go-cmp" disabled>Comparer</button>
+</div>
+
+<script src="data/villes.js"></script>
+<script src="notes_villes.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/galerie.js"></script>
+<script src="js/detail.js"></script>
+<script src="js/comparaison.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

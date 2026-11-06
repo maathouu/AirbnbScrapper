@@ -1,0 +1,235 @@
+/* Galerie : cartes des logements */
+
+.groupe {
+  margin:0 0 48px;
+}
+.groupe h2 {
+  font-size:1.6rem;
+  margin:0 0 4px;
+}
+.groupe>p {
+  margin:0 0 18px;
+  color:var(--mute);
+}
+.grille {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:22px;
+}
+.carte {
+  background:var(--card);
+  border-radius:14px;
+  overflow:hidden;
+  box-shadow:0 0 0 1px var(--line);
+  display:flex;
+  flex-direction:column;
+}
+.photo {
+  position:relative;
+  aspect-ratio:3/2;
+  background:var(--line);
+}
+.photo img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.km {
+  position:absolute;
+  left:12px;
+  bottom:12px;
+  background:var(--sun);
+  color:#12262f;
+  font-weight:700;
+  font-size:.85rem;
+  padding:4px 10px;
+  border-radius:999px;
+}
+.corps {
+  padding:16px 18px 18px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  flex:1;
+}
+.corps h3 {
+  margin:0;
+  font-size:1.02rem;
+  line-height:1.3;
+  font-weight:650;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.prix {
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.prix b {
+  font-size:1.7rem;
+  font-weight:800;
+  letter-spacing:-.02em;
+}
+.prix span {
+  color:var(--mute);
+  font-size:.9rem;
+}
+.stats {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  margin:0;
+  padding:12px 0 0;
+  border-top:1px solid var(--line);
+}
+.stats div {
+  display:flex;
+  flex-direction:column;
+}
+.stats dt {
+  order:2;
+  font-size:.78rem;
+  color:var(--mute);
+}
+.stats dd {
+  order:1;
+  margin:0;
+  font-size:1.25rem;
+  font-weight:750;
+}
+.pied {
+  margin-top:auto;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:.9rem;
+  color:var(--mute);
+}
+.pied a {
+  color:var(--sea);
+  font-weight:650;
+  text-decoration:none;
+}
+.pied a:hover {
+  text-decoration:underline;
+}
+@media(max-width:520px) {
+  .grille {
+    grid-template-columns:1fr;
+  }
+}
+.carte .photo a {
+  display:block;
+  height:100%;
+}
+.carte h3 a {
+  color:inherit;
+  text-decoration:none;
+}
+.carte h3 a:hover {
+  text-decoration:underline;
+}
+.plus {
+  display:block;
+  margin:20px auto 0;
+}
+/* Fiche de ville : pleine largeur, compacte */
+.note-ville {
+  margin: 0 0 18px;
+  padding: 16px 20px;
+  display: grid;
+  gap: 14px;
+  background: var(--card);
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.note-texte {
+  white-space: pre-line;
+}
+.note-tete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 24px;
+}
+.note-resume {
+  flex: 1 1 340px;
+  margin: 0;
+  font-weight: 650;
+  max-width: 70ch;
+}
+.note-scores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  font-size: .85rem;
+  color: var(--mute);
+}
+.pts {
+  letter-spacing: 2px;
+  color: var(--sun);
+  white-space: nowrap;
+}
+.pts i {
+  font-style: normal;
+  color: var(--line);
+}
+.note-infos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px 24px;
+  margin: 0;
+  padding: 12px 0;
+  border-block: 1px solid var(--line);
+}
+.note-infos dt {
+  font-size: .8rem;
+  font-weight: 650;
+  color: var(--mute);
+}
+.note-infos dd {
+  margin: 0;
+  font-size: .92rem;
+  line-height: 1.35;
+}
+.note-bilan {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 32px;
+}
+.note-bilan h4 {
+  margin: 0 0 4px;
+  font-size: .95rem;
+}
+.note-bilan ul {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: .92rem;
+}
+.note-bilan li {
+  margin: 2px 0;
+}
+.l-plus li::marker {
+  content: "+  ";
+  font-weight: 800;
+  color: var(--sea);
+}
+.l-moins li::marker {
+  content: "–  ";
+  font-weight: 800;
+  color: #d9822b;
+}
+.note-avis {
+  margin: 0;
+  font-size: .95rem;
+}
+@media(max-width:700px) {
+  .note-bilan {
+    grid-template-columns: 1fr;
+  }
+}
